@@ -49,9 +49,10 @@ def callback():
 def handle_message(event):
     user_msg = event.message.text.strip()
     
-    # ✅ 僅在收到「目前進度：」開頭的訊息時回覆
-    if not user_msg.startswith("目前進度："):
+    # ✅ 只要訊息中包含「目前進度」就回覆
+    if "目前進度" not in user_msg:
         return
+
 
     now = datetime.datetime.now(tz)
     hour = now.hour
