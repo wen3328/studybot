@@ -48,6 +48,11 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_msg = event.message.text.strip()
+    
+    # ✅ 僅在收到「目前進度：」開頭的訊息時回覆
+    if not user_msg.startswith("目前進度："):
+        return
+
     now = datetime.datetime.now(tz)
     hour = now.hour
 
