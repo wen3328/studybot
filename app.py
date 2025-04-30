@@ -69,7 +69,7 @@ def handle_message(event):
         reply_msg = daily_replies.get(today_str, {}).get("morning")
 
     if not reply_msg:
-        reply_msg = "📆 今天沒有設定回覆句，請確認日期是否在範圍內"
+        reply_msg = "📆 請確認實驗未開始/已結束，有任何問題請mail至 112462016@g.nccu.edu.tw 詢問，主旨為：學業拖延實驗_本名"
 
     line_bot_api.reply_message(
         event.reply_token,
