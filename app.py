@@ -1,4 +1,3 @@
-
 import os
 import json
 import datetime
@@ -9,6 +8,9 @@ from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
+
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # === Flask App ===
 app = Flask(__name__)
@@ -26,6 +28,42 @@ tz = pytz.timezone("Asia/Taipei")
 # === 讀取每日回覆 JSON ===
 with open("daily_replies_2025.json", "r", encoding="utf-8") as f:
     daily_replies = json.load(f)
+
+# === Google Sheets 初始化 ===
+def get_gsheet():
+    cred_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    cred_dict = json.loads(cred_json)
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred_dict, scope)
+    gc = gspread.authorize(credentials)
+    return gc.open_by_key("1UT8aW4bWsyUzka93ufKjhuQOr0rsfiuR").worksheet("每日進度紀錄（控制組）")
+
+# === 寫入進度到表格 ===
+def record_progress_to_sheet(sheet, display_name, now, progress):
+    now = now.astimezone(tz)
+    hour = now.hour
+    is_morning = 9 <= hour < 21
+    time_tag = "早" if is_morning else "晚"
+    date_str = now.strftime("%-m/%-d").lstrip("0")
+
+    header_row = sheet.row_values(4)
+    target_col = None
+    for col_index, header in enumerate(header_row[3:], start=4):  # 從 D欄開始
+        if date_str in header and time_tag in header:
+            target_col = col_index + 1
+            break
+    if not target_col:
+        return f"⚠️ 找不到 {date_str} {time_tag} 對應欄位"
+
+    line_names = sheet.col_values(2)[4:]  # B欄第5列開始
+    try:
+        row_offset = line_names.index(display_name)
+        row_index = row_offset + 5
+    except ValueError:
+        return f"❗ 找不到名稱 {display_name}，請確認表格資料"
+
+    sheet.update_cell(row_index, target_col, str(progress))
+    return f"✅ 已記錄 {display_name} 的 {date_str} {time_tag} 進度為 {progress}%"
 
 # === 根路由檢查 ===
 @app.route("/", methods=["GET"])
@@ -48,11 +86,10 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_msg = event.message.text.strip()
-    
-    # ✅ 只要訊息中包含「目前進度」就回覆
+
+    # ✅ 只有訊息中含「目前進度」才處理
     if "目前進度" not in user_msg:
         return
-
 
     now = datetime.datetime.now(tz)
     hour = now.hour
@@ -60,7 +97,7 @@ def handle_message(event):
     today_str = now.strftime("%Y-%m-%d")
     yesterday_str = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 
-    # 判斷使用早晚回覆
+    # 根據時間取得回覆句
     if 21 <= hour <= 23:
         reply_msg = daily_replies.get(today_str, {}).get("evening")
     elif 0 <= hour < 9:
@@ -68,8 +105,21 @@ def handle_message(event):
     else:
         reply_msg = daily_replies.get(today_str, {}).get("morning")
 
+    # 偵測訊息中 % 數字
+    match = re.search(r"(\d{1,3})\s*%", user_msg)
+    if match:
+        progress = int(match.group(1))
+        if 0 <= progress <= 100:
+            user_id = event.source.user_id
+            profile = line_bot_api.get_profile(user_id)
+            name = profile.display_name
+            sheet = get_gsheet()
+            msg = record_progress_to_sheet(sheet, name, now, progress)
+            reply_msg = f"{reply_msg}\n{msg}"
+
+    # 若無資料可回覆
     if not reply_msg:
-        reply_msg = "📆 請確認實驗未開始/已結束，有任何問題請mail至 112462016@g.nccu.edu.tw 詢問，主旨為：學業拖延實驗_本名"
+        reply_msg = "📆 請確認實驗未開始/已結束，有任何問題請 mail 至 112462016@g.nccu.edu.tw 詢問，主旨為：學業拖延實驗_本名"
 
     line_bot_api.reply_message(
         event.reply_token,
