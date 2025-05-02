@@ -62,23 +62,30 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
     hour = now.hour
     is_morning = 9 <= hour < 21
     time_tag = "早" if is_morning else "晚"
-    date_str = now.strftime("%-m/%-d").lstrip("0")
+    date_str = now.strftime("%-m/%-d").lstrip("0")  # 例如 5/10
 
-    header_row = sheet.row_values(4)
+    time_row = sheet.row_values(1)  # 第 2 列（index = 1）：早 / 晚
+    date_row = sheet.row_values(2)  # 第 3 列（index = 2）：5/10 等日期
+
     target_col = None
-    for col_index, header in enumerate(header_row[3:], start=4):  # 從 D欄開始
-        if date_str in header and time_tag in header:
-            target_col = col_index + 1
-            break
-    if not target_col:
-        return f"⚠️ 找不到 {date_str} {time_tag} 對應欄位"
+    for col in range(4, len(date_row)):  # 從第 5 欄（E）開始
+        this_time = time_row[col].strip()
+        this_date = date_row[col].strip()
 
-    line_names = sheet.col_values(2)[4:]  # B欄第5列開始
+        if this_time == time_tag and this_date == date_str and re.match(r"5/(1[0-9]|2[0-8])", this_date):
+            target_col = col + 1  # gspread 欄位從 1 開始
+            break
+
+    if not target_col:
+        return f"⚠️ 找不到 {date_str} {time_tag} 的對應欄位"
+
+    # B 欄第 5 列以下是名字
+    line_names = sheet.col_values(2)[4:]
     try:
         row_offset = line_names.index(display_name)
         row_index = row_offset + 5
     except ValueError:
-        return f"❗ 找不到名稱 {display_name}，請確認表格資料"
+        return f"❗ 找不到名稱 {display_name}，請確認表格中是否有你的名字"
 
     sheet.update_cell(row_index, target_col, str(progress))
     return f"✅ 已記錄 {display_name} 的 {date_str} {time_tag} 進度為 {progress}%"
