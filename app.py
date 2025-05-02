@@ -62,7 +62,7 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
     hour = now.hour
     is_morning = 9 <= hour < 21
     time_tag = "早" if is_morning else "晚"
-    date_str = now.strftime("%-m/%-d").lstrip("0")  # e.g., 5/10
+    date_str = now.strftime("%-m/%-d").lstrip("0")
 
     # 讀取第2列（日期）與第3列（早/晚）
     date_row = sheet.row_values(1)
@@ -77,24 +77,30 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
         if (
             this_time == time_tag and
             this_date == date_str and
-            (re.match(r"5/(1[0-9]|2[0-8])", this_date) or this_date == "5/2")  # 支援 5/2 測試
+            (re.match(r"5/(1[0-9]|2[0-8])", this_date) or this_date == "5/2")
         ):
-            target_col = col + 1  # gspread 從 1 開始算欄數
+            target_col = col + 1
             break
 
     if not target_col:
         return f"⚠️ 找不到 {date_str} {time_tag} 的對應欄位"
 
-    # 取得 B欄（index=1）第5列以下的名稱清單
-    line_names = [name.strip() for name in sheet.col_values(1)[4:]]
+    # 從 B5 開始逐列找
     normalized_display_name = display_name.strip()
+    row_index = None
+    current_row = 5
 
-    try:
-        row_offset = line_names.index(normalized_display_name)
-        row_index = row_offset + 5
-    except ValueError:
-        # 找不到就新增一列，寫入名稱
-        row_index = len(line_names) + 5
+    while True:
+        cell_value = sheet.cell(current_row, 2).value  # B 欄 = 第2欄
+        if not cell_value:
+            break  # 遇到空白格，視為底部，準備新增
+        if cell_value.strip() == normalized_display_name:
+            row_index = current_row
+            break
+        current_row += 1
+
+    if row_index is None:
+        row_index = current_row
         sheet.update_cell(row_index, 2, normalized_display_name)
         print(f"➕ 新增名稱 {normalized_display_name} 於第 {row_index} 列")
 
