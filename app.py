@@ -131,8 +131,12 @@ def callback():
 def handle_message(event):
     user_msg = event.message.text.strip()
 
-    # ✅ 只有訊息中含「目前進度」才處理
+    # ✅ 若不含「目前進度」就回覆一句話
     if "目前進度" not in user_msg:
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="有關學業的問題，我可以點選單中的學業改善方針，幫助我更有方向面對學業拖延🙌🔥")
+        )
         return
 
     now = datetime.datetime.now(tz)
