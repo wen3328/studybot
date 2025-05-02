@@ -78,7 +78,7 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
         print(f"👉 檢查欄 {col + 1}：{this_date} {this_time}")
 
         # ✅ 僅針對 5/10～5/28 的日期進行比對
-        if this_time == time_tag and this_date == date_str and re.match(r"5/(1[0-9]|2[0-8])", this_date):
+        if (this_time == time_tag and this_date == date_str and (re.match(r"5/(1[0-9]|2[0-8])", this_date) or this_date == "5/2")):
             target_col = col + 1  # gspread 欄從 1 開始
             break
 
