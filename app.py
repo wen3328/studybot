@@ -133,7 +133,7 @@ def handle_message(event):
 
     # ✅ 只有訊息中含「目前進度」才處理
     if "目前進度" not in user_msg:
-        reply_msg ="有關學業拖延的問題～我可以去看選單裡面的拖延改善方針！"
+        return
 
     now = datetime.datetime.now(tz)
     hour = now.hour
