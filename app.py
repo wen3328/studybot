@@ -106,7 +106,7 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
 
     # 更新進度
     sheet.update_cell(row_index, target_col, str(progress))
-    return f"✅ 已記錄 {display_name} 的 {date_str} {time_tag} 進度為 {progress}%"
+    return f"✅ 已記錄我的 {date_str} {time_tag} 進度為 {progress}%"
 
 
 # === 根路由檢查 ===
