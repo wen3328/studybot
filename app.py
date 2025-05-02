@@ -64,18 +64,22 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
     time_tag = "早" if is_morning else "晚"
     date_str = now.strftime("%-m/%-d").lstrip("0")  # 例如 5/10
 
-    date_row = sheet.row_values(1)  # 第2列是日期
-    time_row = sheet.row_values(2)  # 第3列是早/晚
-
+    date_row = sheet.row_values(1)  # 第 2 列：日期
+    time_row = sheet.row_values(2)  # 第 3 列：早 / 晚
+    
+    max_cols = min(len(date_row), len(time_row))  # 只跑兩者都存在的欄數
     target_col = None
-    for col in range(4, len(date_row)):  # 從第5欄（E欄）開始
+    
+    for col in range(4, max_cols):  # 從第5欄（E欄）開始
         this_date = date_row[col].strip()
         this_time = time_row[col].strip()
+    
         print(f"👉 檢查欄 {col + 1}：{this_date} {this_time}")
-
+    
         if this_time == time_tag and this_date == date_str and re.match(r"5/(1[0-9]|2[0-8])", this_date):
-            target_col = col + 1
+            target_col = col + 1  # gspread 是從 1 開始計算欄數
             break
+
 
     if not target_col:
         return f"⚠️ 找不到 {date_str} {time_tag} 的對應欄位"
