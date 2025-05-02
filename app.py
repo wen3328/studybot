@@ -85,13 +85,14 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
     if not target_col:
         return f"⚠️ 找不到 {date_str} {time_tag} 的對應欄位"
 
-    # ✅ B欄（第2欄）第5列以下是 line 名稱
-    line_names = sheet.col_values(1)[4:]  # index=1 是 B欄；第5列是 index=4
+    # ✅ B欄（第2欄）第5列以下是 line 名稱，去除空白
+    line_names = [name.strip() for name in sheet.col_values(1)[4:]]
+    
     try:
-        row_offset = line_names.index(display_name)
+        row_offset = line_names.index(display_name.strip())
         row_index = row_offset + 5
     except ValueError:
-        return f"❗ 找不到名稱 {display_name}，請確認表格中是否有你的名字"
+        return f"❗ 找不到名稱「{display_name}」，請確認表格中是否有你的名字"
 
     sheet.update_cell(row_index, target_col, str(progress))
     return f"✅ 已記錄 {display_name} 的 {date_str} {time_tag} 進度為 {progress}%"
