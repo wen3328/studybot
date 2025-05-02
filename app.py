@@ -31,12 +31,30 @@ with open("daily_replies_2025.json", "r", encoding="utf-8") as f:
 
 # === Google Sheets 初始化 ===
 def get_gsheet():
-    cred_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-    cred_dict = json.loads(cred_json)
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred_dict, scope)
-    gc = gspread.authorize(credentials)
-    return gc.open_by_key("1UT8aW4bWsyUzka93ufKjhuQOr0rsfiuR").worksheet("每日進度紀錄（控制組）")
+    try:
+        cred_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+        if not cred_json:
+            raise ValueError("❗ 找不到環境變數 GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
+        cred_dict = json.loads(cred_json)
+        print("🔍 Service Account Email:", cred_dict.get("client_email"))
+
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred_dict, scope)
+        gc = gspread.authorize(credentials)
+
+        # 嘗試打開試算表
+        spreadsheet = gc.open_by_key("1UT8aW4bWsyUzka93ufKjhuQOr0rsfiuR")
+        print("✅ 成功打開試算表標題：", spreadsheet.title)
+
+        worksheet = spreadsheet.worksheet("每日進度紀錄（控制組）")
+        print("✅ 成功打開工作表：每日進度紀錄（控制組）")
+        return worksheet
+
+    except Exception as e:
+        print("❗ [get_gsheet] 發生錯誤：", e)
+        raise
+
 
 # === 寫入進度到表格 ===
 def record_progress_to_sheet(sheet, display_name, now, progress):
