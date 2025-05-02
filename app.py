@@ -64,36 +64,41 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
     time_tag = "早" if is_morning else "晚"
     date_str = now.strftime("%-m/%-d").lstrip("0")  # e.g., 5/10
 
-    # ✅ 你的表格中：第2列是日期、第3列是早/晚
-    date_row = sheet.row_values(1)  # 第2列 index=1
-    time_row = sheet.row_values(2)  # 第3列 index=2
-
+    # 讀取第2列（日期）與第3列（早/晚）
+    date_row = sheet.row_values(1)
+    time_row = sheet.row_values(2)
     max_cols = max(len(date_row), len(time_row))
     target_col = None
 
-    for col in range(3, max_cols):  # 從第4欄 D 開始
+    for col in range(3, max_cols):  # 從 D 欄（index=3）開始
         this_date = date_row[col].strip() if col < len(date_row) else ""
         this_time = time_row[col].strip() if col < len(time_row) else ""
 
-        print(f"👉 檢查欄 {col + 1}：{this_date} {this_time}")
-
-        # ✅ 僅針對 5/10～5/28 的日期進行比對
-        if (this_time == time_tag and this_date == date_str and (re.match(r"5/(1[0-9]|2[0-8])", this_date) or this_date == "5/2")):
-            target_col = col + 1  # gspread 欄從 1 開始
+        if (
+            this_time == time_tag and
+            this_date == date_str and
+            (re.match(r"5/(1[0-9]|2[0-8])", this_date) or this_date == "5/2")  # 支援 5/2 測試
+        ):
+            target_col = col + 1  # gspread 從 1 開始算欄數
             break
 
     if not target_col:
         return f"⚠️ 找不到 {date_str} {time_tag} 的對應欄位"
 
-    # ✅ B欄（第2欄）第5列以下是 line 名稱，去除空白
+    # 取得 B欄（index=1）第5列以下的名稱清單
     line_names = [name.strip() for name in sheet.col_values(1)[4:]]
-    
+    normalized_display_name = display_name.strip()
+
     try:
-        row_offset = line_names.index(display_name.strip())
+        row_offset = line_names.index(normalized_display_name)
         row_index = row_offset + 5
     except ValueError:
-        return f"❗ 找不到名稱「{display_name}」，請確認表格中是否有你的名字"
+        # 找不到就新增一列，寫入名稱
+        row_index = len(line_names) + 5
+        sheet.update_cell(row_index, 2, normalized_display_name)
+        print(f"➕ 新增名稱 {normalized_display_name} 於第 {row_index} 列")
 
+    # 更新進度
     sheet.update_cell(row_index, target_col, str(progress))
     return f"✅ 已記錄 {display_name} 的 {date_str} {time_tag} 進度為 {progress}%"
 
