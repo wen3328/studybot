@@ -44,7 +44,7 @@ def get_gsheet():
         gc = gspread.authorize(credentials)
 
         # 嘗試打開試算表
-        spreadsheet = gc.open_by_key("1UT8aW4bWsyUzka93ufKjhuQOr0rsfiuR")
+        spreadsheet = gc.open_by_key("1kZGpA5J7b3lvCtqlo9wJp-FrKyYL1Qgt_7Cx5Pr4DSk")
         print("✅ 成功打開試算表標題：", spreadsheet.title)
 
         worksheet = spreadsheet.worksheet("每日進度紀錄（控制組）")
