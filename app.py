@@ -161,7 +161,7 @@ def handle_message(event):
             profile = line_bot_api.get_profile(user_id)
             name = profile.display_name
             sheet = get_gsheet()
-            msg = record_progress_to_sheet(sheet, name, now, progress)
+            msg = record_progress_to_sheet(sheet, name, log_date, log_time_tag, progress)
             reply_msg = f"{reply_msg}\n{msg}"
 
     # 若無資料可回覆
