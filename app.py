@@ -57,14 +57,11 @@ def get_gsheet():
 
 
 # === 寫入進度到表格 ===
-def record_progress_to_sheet(sheet, display_name, now, progress):
-    now = now.astimezone(tz)
-    hour = now.hour
-    is_morning = 9 <= hour < 21
-    time_tag = "早" if is_morning else "晚"
-    date_str = now.strftime("%-m/%-d").lstrip("0")
+def record_progress_to_sheet(sheet, display_name, log_date, time_tag, progress):
+    # 轉換日期格式，例如 5/10
+    date_str = log_date.astimezone(tz).strftime("%-m/%-d").lstrip("0")
 
-    # 讀取第2列（日期）與第3列（早/晚）
+    # 讀取第2列（日期）與第3列（早／晚）
     date_row = sheet.row_values(1)
     time_row = sheet.row_values(2)
     max_cols = max(len(date_row), len(time_row))
@@ -77,15 +74,15 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
         if (
             this_time == time_tag and
             this_date == date_str and
-            (re.match(r"5/(1[0-9]|2[0-5])", this_date) or this_date == "5/8")
+            (re.match(r"5/(1[0-9]|2[0-9])", this_date) or this_date == "5/8")
         ):
-            target_col = col + 1
+            target_col = col + 1  # gspread 從 1 開始算欄位
             break
 
     if not target_col:
         return f"⚠️ 找不到 {date_str} {time_tag} 的對應欄位"
 
-    # 從 B5 開始逐列找
+    # 從 B5 開始逐列比對名稱
     normalized_display_name = display_name.strip()
     row_index = None
     current_row = 5
@@ -93,12 +90,13 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
     while True:
         cell_value = sheet.cell(current_row, 2).value  # B 欄 = 第2欄
         if not cell_value:
-            break  # 遇到空白格，視為底部，準備新增
+            break  # 遇到空白，視為底部
         if cell_value.strip() == normalized_display_name:
             row_index = current_row
             break
         current_row += 1
 
+    # 如果找不到名稱就新增
     if row_index is None:
         row_index = current_row
         sheet.update_cell(row_index, 2, normalized_display_name)
@@ -106,8 +104,7 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
 
     # 更新進度
     sheet.update_cell(row_index, target_col, str(progress))
-    return f"✅ 已記錄我的 {date_str} 進度為 {progress}%"
-
+    return f"✅ 已記錄我的 {date_str} {time_tag} 進度為 {progress}%"
 
 # === 根路由檢查 ===
 @app.route("/", methods=["GET"])
@@ -146,12 +143,14 @@ def handle_message(event):
     yesterday_str = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 
     # 根據時間取得回覆句
-    if 21 <= hour <= 23:
-        reply_msg = daily_replies.get(today_str, {}).get("evening")
-    elif 0 <= hour < 9:
+    if 0 <= hour < 9:
+    # 凌晨～早上9點 → 回覆「前一天晚上的」回應句
         reply_msg = daily_replies.get(yesterday_str, {}).get("evening")
-    else:
+    elif 9 <= hour < 21:
         reply_msg = daily_replies.get(today_str, {}).get("morning")
+    else:  # 21～23點
+        reply_msg = daily_replies.get(today_str, {}).get("evening")
+
 
     # 偵測訊息中 % 數字
     match = re.search(r"(\d{1,3})\s*%", user_msg)
