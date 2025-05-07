@@ -68,16 +68,19 @@ def record_progress_to_sheet(sheet, display_name, log_date, time_tag, progress):
     target_col = None
 
     for col in range(3, max_cols):  # 從 D 欄（index=3）開始
-        this_date = date_row[col].strip() if col < len(date_row) else ""
-        this_time = time_row[col].strip() if col < len(time_row) else ""
+    this_date = date_row[col].strip() if col < len(date_row) else ""
+    this_time = time_row[col].strip() if col < len(time_row) else ""
 
-        if (
-            this_time == time_tag and
-            this_date == date_str and
-            (re.match(r"5/(1[0-9]|2[0-9])", this_date) or this_date == "5/8")
-        ):
-            target_col = col + 1  # gspread 從 1 開始算欄位
-            break
+    print(f"🟡 檢查第 {col+1} 欄 → 日期='{this_date}'、時段='{this_time}'")
+
+    if (
+        this_time == time_tag and
+        this_date == date_str and
+        (re.match(r"5/(1[0-9]|2[0-9])", this_date) or this_date == "5/8")
+    ):
+        print(f"✅ 成功對應欄位 → 第 {col+1} 欄")
+        target_col = col + 1
+        break
 
     if not target_col:
         return f"⚠️ 找不到 {date_str} {time_tag} 的對應欄位"
