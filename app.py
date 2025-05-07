@@ -139,20 +139,21 @@ def handle_message(event):
     now = datetime.datetime.now(tz)
     hour = now.hour
 
-    today_str = now.strftime("%Y-%m-%d")
-    yesterday_str = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-
-    # 根據時間取得回覆句
+    # ✅ 根據時間決定：回覆哪一段話、記錄哪天的進度
     if 0 <= hour < 9:
-    # 凌晨～早上9點 → 回覆「前一天晚上的」回應句
-        reply_msg = daily_replies.get(yesterday_str, {}).get("evening")
+        reply_msg = daily_replies.get((now - datetime.timedelta(days=1)).strftime("%Y-%m-%d"), {}).get("evening")
+        log_date = now - datetime.timedelta(days=1)
+        log_time_tag = "晚"
     elif 9 <= hour < 21:
-        reply_msg = daily_replies.get(today_str, {}).get("morning")
+        reply_msg = daily_replies.get(now.strftime("%Y-%m-%d"), {}).get("morning")
+        log_date = now
+        log_time_tag = "早"
     else:  # 21～23點
-        reply_msg = daily_replies.get(today_str, {}).get("evening")
+        reply_msg = daily_replies.get(now.strftime("%Y-%m-%d"), {}).get("evening")
+        log_date = now
+        log_time_tag = "晚"
 
-
-    # 偵測訊息中 % 數字
+    # ✅ 抓出進度百分比
     match = re.search(r"(\d{1,3})\s*%", user_msg)
     if match:
         progress = int(match.group(1))
@@ -172,6 +173,7 @@ def handle_message(event):
         event.reply_token,
         TextSendMessage(text=reply_msg)
     )
+
 
 if __name__ == "__main__":
     app.run(debug=True)
