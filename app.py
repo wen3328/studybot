@@ -77,7 +77,7 @@ def record_progress_to_sheet(sheet, display_name, now, progress):
         if (
             this_time == time_tag and
             this_date == date_str and
-            (re.match(r"5/(1[0-9]|2[0-8])", this_date) or this_date == "5/2")
+            (re.match(r"5/(1[0-9]|2[0-5])", this_date) or this_date == "5/8")
         ):
             target_col = col + 1
             break
